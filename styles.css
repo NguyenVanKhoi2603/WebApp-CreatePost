@@ -1,0 +1,14 @@
+body {
+    margin: 100px;
+}
+
+.posts {
+    background-color: rgb(201, 201, 201);
+    padding: 15px;
+}
+
+.item {
+    background-color: rgb(201, 201, 201);
+    padding: 15px;
+}
+
