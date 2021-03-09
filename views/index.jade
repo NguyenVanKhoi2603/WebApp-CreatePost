@@ -17,8 +17,13 @@ html(lang='en')
     .container
       .row
         .col-md-4
+          label(for='username') Choose username:
+          select#cars(name='username')
+            each post in posts 
+              option(value='volvo')=post.username
+            
           .form-ctrl
-            form(action='/cpost' method='post')
+            form(action='/' method='post')
               input.form-control(type='text' placeholder='title' name="title")
               br
               input.form-control(type='text' placeholder='content' name="content")

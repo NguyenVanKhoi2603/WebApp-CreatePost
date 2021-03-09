@@ -12,28 +12,19 @@ const router = express.Router();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 router.post('/handle', (request, response) => {
-    //code to perform particular action.
-    //To access POST variable use req.body()methods.
     console.log(request.body);
 });
-// app.get('/', function (req, res) {
-//     res.sendFile(__dirname + '/index.html');
-// })
 
-app.get('/', db.getPostAll, function (req, res) {
-    console.log("aaaaaa");
-});
-app.get('/user', db.getUser);
+app.get('/', db.getPostAll);
+app.get('/:id', db.getUser);
 app.post('/cuser', db.createUser);
-app.post('/cpost', db.createPost);
+app.post('/', db.createPost);
 app.delete('/:id', db.deletePost);
 
-
-
-app.listen(3000)
-
-
-
+const port = 3000
+app.listen(port, function (req, res) {
+    console.log("connect is " + port);
+})
 
 // app.get("/user", async function (req, res) {
 //     try {
