@@ -47,30 +47,20 @@ const login = async (req, res) => {
             return res.status(400).send({ 'message': 'The credentials you provided is incorrect' });
         }
         if (rows[0].password == req.body.password) {
-            //const token = jwt.sign({ userId: rows[0].id }, { expiresIn: '24h' });
             const accessToken = jwt.sign({ username: rows[0].username }, accessTokenSecret);
-            req.setHeader();
-            // res.json({
-            //     accessToken
-            // });
+            res.json({
+                accessToken
+            });
             console.log(accessToken);
-
-            //console.log("===================>>>>>>>>", token);
             res.redirect('/index')
         } else {
-
+            //res.end()
+            res.redirect('/')
         }
-
-        //const token = Helper.generateToken(rows[0].id);
-        //console.log("===================>>>>>>>>", token);
-        //return res.status(200).send({ token });
 
     } catch (error) {
         console.log("=========== ??????", error);
-        //return res.status(400).send("this is error: ", error)
     }
-    //var html = jade.renderFile('./views/login/login.jade');
-    //response.status(200).send(html);
 }
 
 const getUser = (request, response) => {
@@ -120,9 +110,9 @@ const createPost = async (request, response) => {
         const values = [1, title, content, 2, utcDate]
         try {
             const res = await pgClient.query(text, values);
-            console.log("res", res);
-            response.setHeader('Content-Type', 'application/json');
-            response.redirect('back')
+            //console.log("res", res);
+            //response.setHeader('Content-Type', 'application/json');
+            // response.redirect('back')
         } catch (err) {
             console.log(err.stack)
         }

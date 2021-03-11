@@ -10,10 +10,16 @@ html(lang='en')
     title Login
   body
     .container 
+        .alert.alert-warning.alert-dismissible.fade.show(role='alert')
+            strong Message!
+                p=message
+            
+
+
         .login-form 
             form(action='/login' method='post')
               input.form-control(type='text' placeholder='username' name="username")
               br    
               input.form-control(type='text' placeholder='password' name="password")
               br
-              button.btn.btn-success(onclick='' type='submit') PUBLISH
+              button.btn.btn-success(onclick='' type='submit') LOGIN
