@@ -1,5 +1,5 @@
 var pg = require('pg');
-var connectionString = process.env.POSTGRES_URL || "postgres://postgres:postgres@172.21.0.2:5432/dbpost";
+var connectionString = process.env.POSTGRES_URL || "postgres://postgres:postgres@localhost:5433/dbpost";
 var pgClient = new pg.Client(connectionString);
 pgClient.connect();
 

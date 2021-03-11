@@ -15,13 +15,21 @@ router.post('/handle', (request, response) => {
     console.log(request.body);
 });
 
-app.get('/', db.getPostAll);
-app.get('/:id', db.getUser);
-app.post('/cuser', db.createUser);
-app.post('/', db.createPost);
-app.delete('/:id', db.deletePost);
+app.get('/', db.index);
 
-const port = 3000
+app.post('/login', db.login);
+app.get('/index', db.getPostAll);
+// app.get('/:id', db.getUser);
+// //app.post('/cuser', db.createUser);
+// app.post('/', db.createPost);
+// app.post('/post', db.pushComment);
+// app.delete('/:id', db.deletePost);
+// app.post('/post', db.pushComment);
+// app.get('/comment/post=:id', db.getCommentLastOfPost);
+// app.get('/comment/post', db.getPostHasManyComment);
+// app.get('/user/post=:id', db.getUserLastOfPost);
+
+const port = process.env.PORT || 3001
 app.listen(port, function (req, res) {
     console.log("connect is " + port);
 })
