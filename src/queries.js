@@ -6,16 +6,7 @@ const db_client = require('./db_client.js');
 var pgClient = db_client.pgClient;
 pgClient.connect();
 const accessTokenSecret = db_client.accessToken;
-const getPost = async (request, response) => {
-    await pgClient.query('SELECT * FROM post ORDER BY id ASC', (error, result) => {
-        if (error) {
-            console.log('getpost', error);
-        }
-        //console.log('getpost', result.rows);
-        // var html = jade.renderFile('./views/index.jade', { posts: result.rows });
-        // response.status(200).send(html);
-    })
-}
+
 const getPostAll = async (request, response) => {
     const posts = await pgClient.query('SELECT p.id, p.user_id, p.title, p.content, p.timestamp, u.username, i.image FROM post p INNER JOIN users u ON p.user_id = u.id INNER JOIN image i ON p.image_id = i.id ORDER BY p.id DESC');
     const comments = await pgClient.query('SELECT c.id, c.user_id, c.post_id, c.content, c.timestamp, u.id, u.username FROM comment c INNER JOIN users u on c.user_id = u.id');
@@ -146,7 +137,6 @@ const getPostHasManyComment = (request, response) => {
 }
 
 module.exports = {
-    getPost,
     getUser,
     createPost,
     getPostAll,
