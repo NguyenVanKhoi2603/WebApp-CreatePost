@@ -7,7 +7,7 @@ const accessTokenSecret = '1233jk039dc89d00';
 
 const { request, response } = require('express');
 
-var connectionString = process.env.POSTGRES_URL || "postgres://postgres:postgres@localhost:5433/dbpost";
+var connectionString = process.env.POSTGRES_URL || "postgres://postgres:postgres@localhost:5432/instagram";
 var pgClient = new pg.Client(connectionString);
 pgClient.connect();
 
@@ -22,13 +22,10 @@ const getPost = async (request, response) => {
     })
 }
 const getPostAll = async (request, response) => {
-    const posts = await pgClient.query('SELECT * FROM post INNER JOIN users ON post.user_id = users.id INNER JOIN image ON post.image_id = image.id');
-    const comments = await pgClient.query('SELECT * FROM comment INNER JOIN post ON comment.post_id = post.id INNER JOIN users on post.user_id = users.id');
-    const users = await pgClient.query('SELECT * FROM users');
-    //console.log("================>>>> ", posts.rows);
-    var html = jade.renderFile('./views/index.jade', { posts: posts.rows, comments: comments.rows, users: users.rows });
-    //console.log("================>>>> ", html);
-    response.status(200).send(html);
+    const posts = await pgClient.query('SELECT p.id, p.user_id, p.title, p.content, p.timestamp, u.username, i.image FROM post p INNER JOIN users u ON p.user_id = u.id INNER JOIN image i ON p.image_id = i.id ORDER BY p.id DESC');
+    const comments = await pgClient.query('SELECT c.id, c.user_id, c.post_id, c.content, c.timestamp, u.id, u.username FROM comment c INNER JOIN users u on c.user_id = u.id');
+    return response.status(201).send({ posts, comments });
+
 }
 
 const index = (request, response) => {
@@ -37,100 +34,118 @@ const index = (request, response) => {
 }
 
 const login = async (req, res) => {
+    var username = req.body.username;
+    var password = req.body.password;
+    console.log("username: ", username, "password: ", password);
     if (!req.body.username || !req.body.password) {
-        return res.status(400).send({ 'message': 'Some values are missing' });
+        res.status(201).send({ 'message': "", 'login': false });
     }
     const text = ('SELECT * FROM users where username = $1');
     try {
         const { rows } = await pgClient.query(text, [req.body.username]);
         if (!rows[0]) {
-            return res.status(400).send({ 'message': 'The credentials you provided is incorrect' });
+            return res.status(201).send({ 'message': "The credentials you provided is incorrect!", 'login': false });
         }
         if (rows[0].password == req.body.password) {
-            const accessToken = jwt.sign({ username: rows[0].username }, accessTokenSecret);
-            res.json({
-                accessToken
-            });
-            console.log(accessToken);
-            res.redirect('/index')
+            const accessToken = jwt.sign({ id: rows[0].id }, accessTokenSecret);
+            //req.setHeader('Content-Type', accessToken);
+            return res.status(201).send({ accessToken, 'message': "login success!", 'login': true });
         } else {
-            //res.end()
             res.redirect('/')
         }
-
     } catch (error) {
         console.log("=========== ??????", error);
     }
 }
 
 const getUser = (request, response) => {
-    pgClient.query('SELECT * FROM users ORDER BY id ASC', (error, result) => {
-        // var html = jade.renderFile('./views/index.jade', { users: result.rows });
-        // response.status(200).send(html);
-        // response.status(200).send(result.rows);
+
+    const authHeader = request.headers['authorization']
+    const token = authHeader && authHeader.split(' ')[1]
+    if (token == null) return response.sendStatus(401)
+    jwt.verify(token, "1233jk039dc89d00", (err, user) => {
+        if (err) return response.sendStatus(403)
+
+        pgClient.query(`SELECT * FROM users WHERE id = ${user.id}`, (error, result) => {
+            response.status(200).send(result.rows[0]);
+        });
     })
+
+
+
 }
 
-// const createUser = (request, response) => {
-//     const { username, password } = request.body
-//     pgClient.query('INSERT INTO users (username, password) VALUES ($1, $2)', [username, password], (error, results) => {
-//         if (error) {
-//             throw error
-//         }
-//     })
-// }
-// const createImage = (request, response) => {
-//     const { image } = request.body
-//     pgClient.query('INSERT INTO image (image) VALUES ($1)', [image], (error, results) => {
-//         if (error) {
-//             throw error
-//         }
-//     })
-// }
-
 const deletePost = async (request, response) => {
-    const id = parseInt(request.params.id);
-    console.log(id);
+    const id = request.body.post_id;
+    //console.log("+===========++++++++", id);
+    const post = await pgClient.query(`SELECT * FROM post WHERE id = ${id}`);
+    await pgClient.query(`DELETE FROM comment WHERE post_id = ${id}`);
+
     await pgClient.query('DELETE FROM post WHERE id = ($1)', [id], (error, results) => {
         if (error) {
             throw error
         }
-    })
+        pgClient.query(`DELETE FROM image WHERE id = ${post.rows[0].image_id} AND id <> 1`);
+        response.send({ 'message': "Delete Success!" })
+
+    });
+
+    //console.log(post.rows[0].image_id);
 }
 
 const createPost = async (request, response) => {
-
+    let image = request.body.image;
     let title = request.body.title;
     let content = request.body.content;
     var dt = new Date();
     var utcDate = dt.toUTCString();
 
-    if (title != null) {
-        const text = 'INSERT INTO post(user_id, title, content, image_id, timestamp) VALUES($1, $2, $3, $4, $5)';
-        const values = [1, title, content, 2, utcDate]
-        try {
-            const res = await pgClient.query(text, values);
-            //console.log("res", res);
-            //response.setHeader('Content-Type', 'application/json');
-            // response.redirect('back')
-        } catch (err) {
-            console.log(err.stack)
+    if (title != null && content != null) {
+        if (image.length > 0) {
+            const query_Image = 'INSERT INTO image(image) VALUES($1)';
+            const values_image = [image]
+            const resImage = await pgClient.query(query_Image, values_image);
+            const getIdImage = await pgClient.query('SELECT * FROM image ORDER BY id DESC LIMIT 1');
+            //console.log(getIdImage.rows[0].id);
+            const queryPost = 'INSERT INTO post(user_id, title, content, image_id, timestamp) VALUES($1, $2, $3, $4, $5)';
+            const valuesPost = [1, title, content, getIdImage.rows[0].id, utcDate];
+            try {
+
+                const res = await pgClient.query(queryPost, valuesPost);
+                response.status(200).send({ message: "Publish success!!" });
+            } catch (err) {
+                console.log(err.stack)
+            }
+        } else {
+            const text = 'INSERT INTO post(user_id, title, content, image_id, timestamp) VALUES($1, $2, $3, $4, $5)';
+            const values = [1, title, content, 1, utcDate]
+            try {
+                const res = await pgClient.query(text, values);
+                response.status(200).send({ message: "Publish success!!" });
+            } catch (err) {
+                console.log(err.stack)
+            }
         }
+
     }
 }
 
 const pushComment = async (request, response) => {
     let content = request.body.content_comment;
+    let post_id = request.body.post_id;
+    console.log("content: " + content, "post_id: " + post_id);
     var dt = new Date();
     var utcDate = dt.toUTCString();
-    if (title != null) {
+    if (content != null) {
         const text = 'INSERT INTO comment(user_id, post_id, content, timestamp) VALUES($1, $2, $3, $4)';
-        const values = [1, 2, content, utcDate]
+        const values = [1, post_id, content, utcDate]
         try {
             const res = await pgClient.query(text, values);
             console.log(res.rows[0]);
+            response.status(200).send({ message: "Comment success!!" });
         } catch (err) {
             console.log(err.stack)
+            response.send({ message: "Error" });
         }
     }
 }

@@ -1,27 +1,42 @@
-// var pg = require('pg');
-// var connectionString = "postgres://macintoshhd@localhost/dbPost";
-// var pgClient = new pg.Client(connectionString);
-// pgClient.connect();
+const jwt = require('jsonwebtoken');
 const express = require('express')
 const db = require('./queries')
 const app = express()
 const fetch = require("node-fetch");
+var cors = require('cors');
 
 const bodyParser = require("body-parser");
 const router = express.Router();
+const port = process.env.PORT || 3001;
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-router.post('/handle', (request, response) => {
-    console.log(request.body);
-});
+app.use(cors());
+router.use(function (req, res, next) {
+    console.log('Time:', Date.now())
+    next()
+    console.log("=============>>");
+})
 
-app.get('/', db.index);
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization']
+    const token = authHeader && authHeader.split(' ')[1]
+    if (token == null) return res.sendStatus(401)
+
+    jwt.verify(token, "1233jk039dc89d00", (err, user) => {
+        if (err) return res.sendStatus(403)
+        res.append('Warning', '201 Warning');
+        next()
+    })
+}
 
 app.post('/login', db.login);
-app.get('/index', db.getPostAll);
+app.get('/', authenticateToken, db.getPostAll);
+app.post('/post', db.createPost);
+app.get('/info', db.getUser);
+app.post('/comment', db.pushComment);
+app.delete('/post', db.deletePost);
 // app.get('/:id', db.getUser);
-// //app.post('/cuser', db.createUser);
-// app.post('/', db.createPost);
+// app.post('/cuser', db.createUser);
 // app.post('/post', db.pushComment);
 // app.delete('/:id', db.deletePost);
 // app.post('/post', db.pushComment);
@@ -29,7 +44,7 @@ app.get('/index', db.getPostAll);
 // app.get('/comment/post', db.getPostHasManyComment);
 // app.get('/user/post=:id', db.getUserLastOfPost);
 
-const port = process.env.PORT || 3001
+
 app.listen(port, function (req, res) {
     console.log("connect is " + port);
 })

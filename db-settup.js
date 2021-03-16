@@ -1,6 +1,6 @@
 const application = require('express');
 var pg = require('pg');
-var connectionString = process.env.POSTGRES_URL || "postgres://postgres:postgres@localhost:5432/dbpost";
+var connectionString = process.env.POSTGRES_URL || "postgres://postgres:postgres@localhost:5432/instagram";
 console.log('======', connectionString)
 var pgClient = new pg.Client(connectionString);
 try {

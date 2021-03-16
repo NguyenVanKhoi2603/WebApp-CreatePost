@@ -8,18 +8,24 @@ html(lang='en')
     style(type="text/css"): include styles.css
       
     title Login
-  body
+  body  
     .container 
         .alert.alert-warning.alert-dismissible.fade.show(role='alert')
             strong Message!
-                p=message
-            
-
-
+                p=message + accessToken
         .login-form 
             form(action='/login' method='post')
               input.form-control(type='text' placeholder='username' name="username")
               br    
               input.form-control(type='text' placeholder='password' name="password")
               br
-              button.btn.btn-success(onclick='' type='submit') LOGIN
+              button.btn.btn-success(onclick='local()' type='submit') LOGIN
+              
+script.
+    function local () { 
+        var i = accessToken;
+        //var i = "sadsdasd"
+        localStorage.setItem('accessToken', i);
+    }
+    console.log('stored');
+    

@@ -11,6 +11,7 @@ html(lang='en')
   body
     br
     br
+    p=accessToken + ssdas
     br
     br
     .container
@@ -67,4 +68,6 @@ html(lang='en')
                               .input-group-append
                                 button.btn.btn-outline-secondary(onclick='publish()' type='submit') PUBLISH
 
-                       
+script.
+  //- if accessToken != null
+    localStorage.setItem('accessToken', "accessToken index");
