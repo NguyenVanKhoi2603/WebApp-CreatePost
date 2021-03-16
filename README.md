@@ -1,5 +1,11 @@
 # WebApp-CreatePost
 - Build Web app 
+- Create Database
+- run npm create table and insert data
+````
+    npm run migrate
+    npm run insertdb
+````
 ## App web đăng tin.
 
 + **Yêu cầu**: Viết ứng dụng web app cho người dùng, cho phép người dùng thực hiện việc tạo nội dung mới, các thông tin của bài viết bao gồm: tên người đăng, thời gian, tiêu đề, nội dung bài viết, các nút tương tác với bài viết. Sau khi người dùng nhấn tải lên nội dung, bài viết sẽ được hiểu thị ở bảng tin và tất cả người dùng có thể nhìn thấy và tương tác.
