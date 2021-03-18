@@ -35,6 +35,7 @@ app.post('/post', db.createPost);
 app.get('/info', db.getUser);
 app.post('/comment', db.pushComment);
 app.delete('/post', db.deletePost);
+app.get('/comment/', db.getAllComment);
 app.listen(port, function (req, res) {
     console.log("connect is " + port);
 })

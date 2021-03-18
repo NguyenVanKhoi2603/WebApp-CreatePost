@@ -16,6 +16,8 @@ const getPostAll = async (request, response) => {
 const login = async (req, res) => {
     var username = req.body.username;
     var password = req.body.password;
+    console.log(req.body);
+
     if (!req.body.username || !req.body.password) {
         res.status(201).send({ 'message': "", 'login': false });
     }
@@ -26,7 +28,7 @@ const login = async (req, res) => {
         }
         if (rows[0].password == req.body.password) {
             const accessToken = jwt.sign({ id: rows[0].id }, accessTokenSecret);
-            return res.status(201).send({ accessToken, 'message': "login success!", 'login': true });
+            return res.status(201).send({ user_id: rows[0].id, accessToken, 'message': "login success!", 'login': true });
         } else {
             res.redirect('/')
         }
@@ -61,9 +63,11 @@ const deletePost = async (request, response) => {
 }
 
 const createPost = async (request, response) => {
-    let image = request.body.image;
-    let title = request.body.title;
-    let content = request.body.content;
+    var image = request.body.image;
+    var title = request.body.title;
+    var user_id = request.body.user_id;
+    var content = request.body.content;
+    console.log("------------------", title, content, image);
     var dt = new Date();
     var utcDate = dt.toUTCString();
     if (title != null && content != null) {
@@ -73,7 +77,7 @@ const createPost = async (request, response) => {
             const resImage = await pgClient.query(query_Image, values_image);
             const getIdImage = await pgClient.query('SELECT * FROM image ORDER BY id DESC LIMIT 1');
             const queryPost = 'INSERT INTO post(user_id, title, content, image_id, timestamp) VALUES($1, $2, $3, $4, $5)';
-            const valuesPost = [1, title, content, getIdImage.rows[0].id, utcDate];
+            const valuesPost = [user_id, title, content, getIdImage.rows[0].id, utcDate];
             try {
                 const res = await pgClient.query(queryPost, valuesPost);
                 response.status(200).send({ message: "Publish success!!" });
@@ -82,7 +86,7 @@ const createPost = async (request, response) => {
             }
         } else {
             const text = 'INSERT INTO post(user_id, title, content, image_id, timestamp) VALUES($1, $2, $3, $4, $5)';
-            const values = [1, title, content, 1, utcDate]
+            const values = [user_id, title, content, 1, utcDate]
             try {
                 const res = await pgClient.query(text, values);
                 response.status(200).send({ message: "Publish success!!" });
@@ -96,11 +100,12 @@ const createPost = async (request, response) => {
 const pushComment = async (request, response) => {
     let content = request.body.content_comment;
     let post_id = request.body.post_id;
+    let user_id = request.body.user_id;
     var dt = new Date();
     var utcDate = dt.toUTCString();
-    if (content != null) {
+    if (content.length > 3) {
         const text = 'INSERT INTO comment(user_id, post_id, content, timestamp) VALUES($1, $2, $3, $4)';
-        const values = [1, post_id, content, utcDate]
+        const values = [user_id, post_id, content, utcDate]
         try {
             const res = await pgClient.query(text, values);
             console.log(res.rows[0]);
@@ -109,6 +114,8 @@ const pushComment = async (request, response) => {
             console.log(err.stack)
             response.send({ message: "Error" });
         }
+    } else {
+        response.send({ message: "No data!" });
     }
 }
 
@@ -129,12 +136,38 @@ const getUserLastOfPost = (request, response) => {
 const getPostHasManyComment = (request, response) => {
     try {
         pgClient.query('SELECT p.id, p.user_id, p.title, p.content, p.image_id, p.timestamp, count(p.id) FROM post p RIGHT JOIN comment c on p.id = c.post_id GROUP BY p.id ORDER BY count DESC LIMIT 1', (error, result) => {
-            response.send(result1.rows);
+            response.send(result.rows);
         })
     } catch (error) {
         console.log("Error: ", error, result);
+        res.send({ message: "Error" });
     }
 }
+
+const getCommentByPostId = (req, res) => {
+    var id = req.params.post_id;
+    console.log("++++++++++++>>>>>>" + id)
+    var id_post = 6;
+    try {
+        pgClient.query('SELECT c.id, c.user_id, c.post_id, c.content, c.timestamp, u.username FROM comment c JOIN users u ON c.user_id = u.id WHERE c.post_id = 6', (error, result) => {
+            res.send(result.rows);
+        });
+    } catch (error) {
+        console.log("======FUNCTION======: " + error);
+    }
+}
+const getAllComment = (req, res) => {
+    try {
+        pgClient.query('SELECT c.id, c.user_id, c.post_id, c.content, c.timestamp, u.username FROM comment c JOIN users u ON c.user_id = u.id', (error, result) => {
+            res.send(result.rows);
+        });
+    } catch (error) {
+        console.log("======Get all comment======: " + error);
+    }
+}
+
+
+// SELECT c.id, c.user_id, c.post_id, c.content, c.timestamp, u.username FROM comment c JOIN users u ON c.user_id = u.id WHERE c.post_id = 6
 
 module.exports = {
     getUser,
@@ -146,4 +179,6 @@ module.exports = {
     getPostHasManyComment,
     getUserLastOfPost,
     login,
+    getCommentByPostId,
+    getAllComment,
 }
