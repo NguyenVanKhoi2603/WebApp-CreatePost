@@ -146,14 +146,13 @@ const getPostHasManyComment = (request, response) => {
 
 const getCommentByPostId = (req, res) => {
     var id = req.params.post_id;
-    console.log("++++++++++++>>>>>>" + id)
     var id_post = 6;
     try {
         pgClient.query('SELECT c.id, c.user_id, c.post_id, c.content, c.timestamp, u.username FROM comment c JOIN users u ON c.user_id = u.id WHERE c.post_id = 6', (error, result) => {
             res.send(result.rows);
         });
     } catch (error) {
-        console.log("======FUNCTION======: " + error);
+        console.log(error);
     }
 }
 const getAllComment = (req, res) => {
@@ -162,7 +161,7 @@ const getAllComment = (req, res) => {
             res.send(result.rows);
         });
     } catch (error) {
-        console.log("======Get all comment======: " + error);
+        console.log(error);
     }
 }
 
