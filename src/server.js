@@ -30,12 +30,23 @@ function authenticateToken(req, res, next) {
 }
 
 app.post('/login', db.login);
-app.get('/', authenticateToken, db.getPostAll);
+app.get('/', db.getPostAll);
 app.post('/post', db.createPost);
 app.get('/info', db.getUser);
 app.post('/comment', db.pushComment);
 app.delete('/post', db.deletePost);
-app.get('/comment/', db.getAllComment);
+app.get('/comment/', db.getAllCommentAndJoin);
+
+app.get('/posts', db.getPosts);
+app.get('/posts/:id', db.getAPost);
+app.get('/posts/:key', db.searchPost);
+app.delete('/posts/:id', db.deletePostById);
+
+app.get('/comments', db.getComments);
+app.get('/users', db.getUsers);
+app.get('/images', db.getImages);
+
+app.post('/posts', db.createPost);
 app.listen(port, function (req, res) {
     console.log("connect is " + port);
 })

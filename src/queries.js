@@ -155,7 +155,7 @@ const getCommentByPostId = (req, res) => {
         console.log(error);
     }
 }
-const getAllComment = (req, res) => {
+const getAllCommentAndJoin = (req, res) => {
     try {
         pgClient.query('SELECT c.id, c.user_id, c.post_id, c.content, c.timestamp, u.username FROM comment c JOIN users u ON c.user_id = u.id', (error, result) => {
             res.send(result.rows);
@@ -165,8 +165,94 @@ const getAllComment = (req, res) => {
     }
 }
 
+const getComments = (req, res) => {
+    try {
+        pgClient.query('SELECT * FROM comment', (error, result) => {
+            res.set('Content-Range', `comments 0-2/10`)
+            res.set('Access-Control-Expose-Headers', 'Content-Range')
+            res.send(result.rows);
+        });
+    } catch (error) {
+        console.log(error);
+    }
+}
 
-// SELECT c.id, c.user_id, c.post_id, c.content, c.timestamp, u.username FROM comment c JOIN users u ON c.user_id = u.id WHERE c.post_id = 6
+const getUsers = (req, res) => {
+    try {
+        pgClient.query('SELECT * FROM users', (error, result) => {
+            res.set('Content-Range', `users 0-2/10`)
+            res.set('Access-Control-Expose-Headers', 'Content-Range')
+            res.send(result.rows);
+        });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const getPosts = (req, res) => {
+    try {
+        pgClient.query('SELECT * FROM post', (error, result) => {
+            res.set('Content-Range', `posts 0-2/10`)
+            res.set('Access-Control-Expose-Headers', 'Content-Range')
+            res.send(result.rows);
+        });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const getImages = (req, res) => {
+    try {
+        pgClient.query('SELECT * FROM image', (error, result) => {
+            res.set('Content-Range', `images 0-2/10`)
+            res.set('Access-Control-Expose-Headers', 'Content-Range')
+            res.send(result.rows);
+        });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const getAPost = (req, res) => {
+    let id = req.params.id;
+    try {
+        pgClient.query('SELECT * FROM post WHERE id = ($1)', [id], (error, result) => {
+            res.set('Content-Range', `images 0-2/10`)
+            res.set('Access-Control-Expose-Headers', 'Content-Range')
+            res.send(result.rows[0]);
+        });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const searchPost = (req, res) => {
+    let key = req.params.key;
+    try {
+        pgClient.query(`select * from post where content like '%($1)%' or title like '%($2)%'`, [key, key], (error, result) => {
+            res.set('Content-Range', `images 0-2/10`)
+            res.set('Access-Control-Expose-Headers', 'Content-Range')
+            res.send(result.rows[0]);
+        });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const deletePostById = (req, res) => {
+    let id = req.params.id;
+    try {
+        pgClient.query(`DELETE FROM post WHERE id = ($1)`, [id], (error, result) => {
+            // res.set('Content-Range', `images 0-2/10`)
+            // res.set('Access-Control-Expose-Headers', 'Content-Range')
+            res.send({ message: "Deleted" })
+        });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+
 
 module.exports = {
     getUser,
@@ -179,5 +265,12 @@ module.exports = {
     getUserLastOfPost,
     login,
     getCommentByPostId,
-    getAllComment,
+    getAllCommentAndJoin,
+    getComments,
+    getPosts,
+    getImages,
+    getUsers,
+    getAPost,
+    searchPost,
+    deletePostById
 }
