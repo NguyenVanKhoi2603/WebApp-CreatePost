@@ -38,13 +38,24 @@ app.delete('/post', db.deletePost);
 app.get('/comment/', db.getAllCommentAndJoin);
 
 app.get('/posts', db.getPosts);
-app.get('/posts/:id', db.getAPost);
+app.get('/posts/:id', db.getPostById);
 app.get('/posts/:key', db.searchPost);
 app.delete('/posts/:id', db.deletePostById);
+app.put('/posts/:id', db.updatePost);
 
 app.get('/comments', db.getComments);
+app.get('/comments/:id', db.getCommentById);
+app.delete('/comments/:id', db.deleteCommentById);
+
 app.get('/users', db.getUsers);
+app.post('/users', db.CreateUser);
+app.delete('/users/:id', db.deleteUser);
+app.get('/users/:id', db.getUserById);
+app.put('/users/:id', db.updateUser);
+
 app.get('/images', db.getImages);
+app.get('/images/:id', db.getImageById);
+app.delete('/images/:id', db.deleteImageById);
 
 app.post('/posts', db.createPost);
 app.listen(port, function (req, res) {

@@ -67,7 +67,6 @@ const createPost = async (request, response) => {
     var title = request.body.title;
     var user_id = request.body.user_id;
     var content = request.body.content;
-    console.log("------------------", title, content, image);
     var dt = new Date();
     var utcDate = dt.toUTCString();
     if (title != null && content != null) {
@@ -119,6 +118,24 @@ const pushComment = async (request, response) => {
     }
 }
 
+const CreateUser = async (request, response) => {
+    let username = request.body.username;
+    let password = request.body.password;
+    if (username.length > 3 && password.length > 6) {
+        const text = 'INSERT INTO users(username, password) VALUES($1, $2)';
+        const values = [username, password];
+        try {
+            const res = await pgClient.query(text, values);
+            response.send({ message: "Comment success!!" });
+        } catch (err) {
+            console.log(err.stack)
+            response.send({ message: "Error" });
+        }
+    } else {
+        response.send({ message: "No data!" });
+    }
+}
+
 const getCommentLastOfPost = (request, response) => {
     const id = parseInt(request.params.id);
     pgClient.query('SELECT * FROM comment WHERE post_id = ($1) ORDER BY id DESC LIMIT 3', [id], (error, result) => {
@@ -155,6 +172,7 @@ const getCommentByPostId = (req, res) => {
         console.log(error);
     }
 }
+
 const getAllCommentAndJoin = (req, res) => {
     try {
         pgClient.query('SELECT c.id, c.user_id, c.post_id, c.content, c.timestamp, u.username FROM comment c JOIN users u ON c.user_id = u.id', (error, result) => {
@@ -252,6 +270,134 @@ const deletePostById = (req, res) => {
     }
 }
 
+const deleteCommentById = (req, res) => {
+    let id = req.params.id;
+    try {
+        pgClient.query(`DELETE FROM comment WHERE id = ($1)`, [id], (error, result) => {
+            // res.set('Content-Range', `images 0-2/10`)
+            // res.set('Access-Control-Expose-Headers', 'Content-Range')
+            res.send({ message: "Deleted" })
+        });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const deleteImageById = (req, res) => {
+    let id = req.params.id;
+    try {
+        pgClient.query(`DELETE FROM image WHERE id = ($1)`, [id], (error, result) => {
+            // res.set('Content-Range', `images 0-2/10`)
+            // res.set('Access-Control-Expose-Headers', 'Content-Range')
+            res.send({ message: "Deleted" })
+        });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const getImageById = (req, res) => {
+    let id = req.params.id;
+    try {
+        pgClient.query('SELECT * FROM image WHERE id = ($1)', [id], (error, result) => {
+            res.send(result.rows[0])
+        })
+    } catch (error) {
+        console.log(error);
+        res.send({ 'error': error })
+    }
+}
+
+const getCommentById = (req, res) => {
+    let id = req.params.id;
+    try {
+        pgClient.query('SELECT * FROM comment WHERE id = ($1)', [id], (error, result) => {
+            res.send(result.rows[0])
+        })
+    } catch (error) {
+        console.log(error);
+        res.send({ 'error': error })
+    }
+}
+
+const getPostById = (req, res) => {
+    let id = req.params.id;
+    try {
+        pgClient.query('SELECT * FROM post WHERE id = ($1)', [id], (error, result) => {
+            res.send(result.rows[0])
+        })
+    } catch (error) {
+        console.log(error);
+        res.send({ 'error': error })
+    }
+}
+
+const getUserById = (req, res) => {
+    let id = req.params.id;
+    try {
+        pgClient.query('SELECT * FROM users WHERE id = ($1)', [id], (error, result) => {
+            if (error) {
+                res.send(error)
+            } else {
+                res.send(result.rows[0])
+            }
+
+        })
+    } catch (error) {
+        console.log(error);
+        res.send({ 'error': error })
+    }
+}
+
+const deleteUser = async (request, response) => {
+    const id = request.params.id;
+    await pgClient.query(`DELETE FROM comment WHERE user_id = ($1)`, [id], (error, result) => {
+        if (error) {
+            console.log(error);
+            response.send({ 'message': error })
+        }
+    });
+    await pgClient.query('DELETE FROM post WHERE user_id = ($1)', [id], (error, results) => {
+        if (error) {
+            throw error
+        }
+        pgClient.query(`DELETE FROM users WHERE id = ($1)`, [id], (error, results) => {
+            response.send({ 'message': "Delete Success!" })
+        });
+
+    });
+}
+
+const updateUser = (req, res) => {
+    const id = req.params.id;
+    const username = req.body.username;
+    const password = req.body.password;
+    try {
+        pgClient.query(`UPDATE users SET username = ($1), password = ($2) WHERE id = ($3)`, [username, password, id], (error, result) => {
+            res.send({ 'message': 'Update success!' });
+        });
+    } catch (error) {
+        res.send({ 'error': error });
+    }
+}
+
+const updatePost = (req, res) => {
+    const id = req.params.id;
+    const title = req.body.title;
+    const content = req.body.content;
+    try {
+        pgClient.query(`UPDATE post SET title = ($1), content = ($2) WHERE id = ($3)`, [title, content, id], (error, result) => {
+            res.send({ 'message': 'Update success!' });
+        });
+    } catch (error) {
+        res.send({ 'error': error });
+    }
+}
+
+
+
+
+
 
 
 module.exports = {
@@ -272,5 +418,15 @@ module.exports = {
     getUsers,
     getAPost,
     searchPost,
-    deletePostById
+    deletePostById,
+    deleteCommentById,
+    deleteImageById,
+    getCommentById,
+    getImageById,
+    getPostById,
+    CreateUser,
+    deleteUser,
+    getUserById,
+    updateUser,
+    updatePost
 }
