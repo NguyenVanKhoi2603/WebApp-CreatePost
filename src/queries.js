@@ -3,6 +3,7 @@ var jade = require('jade');
 const jwt = require("jsonwebtoken");
 const { request, response } = require('express');
 const db_client = require('./db_client.js');
+const { json } = require('body-parser');
 var pgClient = db_client.pgClient;
 pgClient.connect();
 const accessTokenSecret = db_client.accessToken;
@@ -162,14 +163,19 @@ const getPostHasManyComment = (request, response) => {
 }
 
 const getCommentByPostId = (req, res) => {
-    var id = req.params.post_id;
-    var id_post = 6;
-    try {
-        pgClient.query('SELECT c.id, c.user_id, c.post_id, c.content, c.timestamp, u.username FROM comment c JOIN users u ON c.user_id = u.id WHERE c.post_id = 6', (error, result) => {
-            res.send(result.rows);
-        });
-    } catch (error) {
-        console.log(error);
+    if (req.query.filter) {
+        try {
+            var obj = JSON.parse(req.query.filter);
+            if (obj.post_id.length > 0) {
+                pgClient.query(`SELECT * FROM comment WHERE post_id = ($1)`, [obj.post_id], (error, result) => {
+                    res.set('Content-Range', `comments 0-2/10`)
+                    res.set('Access-Control-Expose-Headers', 'Content-Range')
+                    res.send(result.rows);
+                });
+            }
+        } catch (error) {
+            console.log(error);
+        }
     }
 }
 
@@ -185,11 +191,29 @@ const getAllCommentAndJoin = (req, res) => {
 
 const getComments = (req, res) => {
     try {
-        pgClient.query('SELECT * FROM comment', (error, result) => {
-            res.set('Content-Range', `comments 0-2/10`)
-            res.set('Access-Control-Expose-Headers', 'Content-Range')
-            res.send(result.rows);
-        });
+        var sort = JSON.parse(req.query.sort);
+        if (req.query.filter !== 'undefined') {
+            var obj = JSON.parse(req.query.filter);
+            if (obj.post_id > 0) {
+                pgClient.query(`SELECT * FROM comment WHERE post_id = ($1)  ORDER BY ${sort[0]} ${sort[1]}`, [obj.post_id], (error, result) => {
+                    res.set('Content-Range', `comments 0-2/10`)
+                    res.set('Access-Control-Expose-Headers', 'Content-Range')
+                    res.send(result.rows);
+                });
+            } else {
+                pgClient.query(`SELECT * FROM comment ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
+                    res.set('Content-Range', `comments 0-2/10`)
+                    res.set('Access-Control-Expose-Headers', 'Content-Range')
+                    res.send(result.rows);
+                });
+            }
+        } else {
+            pgClient.query(`SELECT * FROM comment ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
+                res.set('Content-Range', `comments 0-2/10`)
+                res.set('Access-Control-Expose-Headers', 'Content-Range')
+                res.send(result.rows);
+            });
+        }
     } catch (error) {
         console.log(error);
     }
@@ -197,11 +221,29 @@ const getComments = (req, res) => {
 
 const getUsers = (req, res) => {
     try {
-        pgClient.query('SELECT * FROM users', (error, result) => {
-            res.set('Content-Range', `users 0-2/10`)
-            res.set('Access-Control-Expose-Headers', 'Content-Range')
-            res.send(result.rows);
-        });
+        var sort = JSON.parse(req.query.sort);
+        if (req.query.filter !== 'undefined') {
+            var obj = JSON.parse(req.query.filter);
+            if (obj.q !== 'undefined' && obj.q != null) {
+                pgClient.query(`SELECT * FROM users WHERE username LIKE '%${obj.q}%' ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
+                    res.set('Content-Range', `users 0-2/10`)
+                    res.set('Access-Control-Expose-Headers', 'Content-Range')
+                    res.send(result.rows);
+                });
+            } else {
+                pgClient.query(`SELECT * FROM users ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
+                    res.set('Content-Range', `users 0-2/10`)
+                    res.set('Access-Control-Expose-Headers', 'Content-Range')
+                    res.send(result.rows);
+                });
+            }
+        } else {
+            pgClient.query(`SELECT * FROM users ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
+                res.set('Content-Range', `users 0-2/10`)
+                res.set('Access-Control-Expose-Headers', 'Content-Range')
+                res.send(result.rows);
+            });
+        }
     } catch (error) {
         console.log(error);
     }
@@ -209,11 +251,30 @@ const getUsers = (req, res) => {
 
 const getPosts = (req, res) => {
     try {
-        pgClient.query('SELECT * FROM post', (error, result) => {
-            res.set('Content-Range', `posts 0-2/10`)
-            res.set('Access-Control-Expose-Headers', 'Content-Range')
-            res.send(result.rows);
-        });
+        var sort = JSON.parse(req.query.sort);
+        if (req.query.filter !== 'undefined') {
+            var obj = JSON.parse(req.query.filter);
+            if (obj.q !== 'undefined' && obj.q != null) {
+                pgClient.query(`SELECT * FROM post WHERE title LIKE '%${obj.q}%' OR content LIKE '%${obj.q}%' ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
+                    res.set('Content-Range', `users 0-2/10`)
+                    res.set('Access-Control-Expose-Headers', 'Content-Range')
+                    res.send(result.rows);
+                });
+            } else {
+                pgClient.query(`SELECT * FROM post ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
+                    res.set('Content-Range', `posts 0-2/10`)
+                    res.set('Access-Control-Expose-Headers', 'Content-Range')
+                    res.send(result.rows);
+                });
+            }
+        } else {
+            pgClient.query(`SELECT * FROM post ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
+                res.set('Content-Range', `posts 0-2/10`)
+                res.set('Access-Control-Expose-Headers', 'Content-Range')
+                res.send(result.rows);
+            });
+        }
+
     } catch (error) {
         console.log(error);
     }
@@ -221,7 +282,8 @@ const getPosts = (req, res) => {
 
 const getImages = (req, res) => {
     try {
-        pgClient.query('SELECT * FROM image', (error, result) => {
+        var sort = JSON.parse(req.query.sort);
+        pgClient.query(`SELECT * FROM image ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
             res.set('Content-Range', `images 0-2/10`)
             res.set('Access-Control-Expose-Headers', 'Content-Range')
             res.send(result.rows);
@@ -231,31 +293,6 @@ const getImages = (req, res) => {
     }
 }
 
-const getAPost = (req, res) => {
-    let id = req.params.id;
-    try {
-        pgClient.query('SELECT * FROM post WHERE id = ($1)', [id], (error, result) => {
-            res.set('Content-Range', `images 0-2/10`)
-            res.set('Access-Control-Expose-Headers', 'Content-Range')
-            res.send(result.rows[0]);
-        });
-    } catch (error) {
-        console.log(error);
-    }
-}
-
-const searchPost = (req, res) => {
-    let key = req.params.key;
-    try {
-        pgClient.query(`select * from post where content like '%($1)%' or title like '%($2)%'`, [key, key], (error, result) => {
-            res.set('Content-Range', `images 0-2/10`)
-            res.set('Access-Control-Expose-Headers', 'Content-Range')
-            res.send(result.rows[0]);
-        });
-    } catch (error) {
-        console.log(error);
-    }
-}
 
 const deletePostById = (req, res) => {
     let id = req.params.id;
@@ -374,7 +411,7 @@ const updateUser = (req, res) => {
     const password = req.body.password;
     try {
         pgClient.query(`UPDATE users SET username = ($1), password = ($2) WHERE id = ($3)`, [username, password, id], (error, result) => {
-            res.send({ 'message': 'Update success!' });
+            res.send({ 'id': id, 'message': 'Update success!' });
         });
     } catch (error) {
         res.send({ 'error': error });
@@ -387,18 +424,12 @@ const updatePost = (req, res) => {
     const content = req.body.content;
     try {
         pgClient.query(`UPDATE post SET title = ($1), content = ($2) WHERE id = ($3)`, [title, content, id], (error, result) => {
-            res.send({ 'message': 'Update success!' });
+            res.status(200).send({ 'id': id, 'message': "update success!" });
         });
     } catch (error) {
         res.send({ 'error': error });
     }
 }
-
-
-
-
-
-
 
 module.exports = {
     getUser,
@@ -416,8 +447,6 @@ module.exports = {
     getPosts,
     getImages,
     getUsers,
-    getAPost,
-    searchPost,
     deletePostById,
     deleteCommentById,
     deleteImageById,
@@ -428,5 +457,5 @@ module.exports = {
     deleteUser,
     getUserById,
     updateUser,
-    updatePost
+    updatePost,
 }

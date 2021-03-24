@@ -39,7 +39,6 @@ app.get('/comment/', db.getAllCommentAndJoin);
 
 app.get('/posts', db.getPosts);
 app.get('/posts/:id', db.getPostById);
-app.get('/posts/:key', db.searchPost);
 app.delete('/posts/:id', db.deletePostById);
 app.put('/posts/:id', db.updatePost);
 

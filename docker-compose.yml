@@ -3,6 +3,7 @@ networks:
   mynetwork:
     driver: bridge
 services:
+
   server_api:
     build: 
       dockerfile: ./Dockerfile
@@ -32,6 +33,18 @@ services:
       POSTGRES_USER: postgres
     networks: 
       - mynetwork
+  nginx:
+    image: nginx:latest
+    container_name: nginx 
+    build: 
+      context: .
+    volumes:
+    # - ./templates:/etc/nginx/templates
+    ports:
+    - "8080:80"
+    environment:
+    - NGINX_HOST=
+    - NGINX_PORT=
 
 
       
