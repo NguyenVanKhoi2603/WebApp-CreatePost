@@ -1,9 +1,6 @@
-var pg = require('pg');
-var jade = require('jade');
 const jwt = require("jsonwebtoken");
-const { request, response } = require('express');
 const db_client = require('./db_client.js');
-const { json } = require('body-parser');
+const _ = require('lodash');
 var pgClient = db_client.pgClient;
 pgClient.connect();
 const accessTokenSecret = db_client.accessToken;
@@ -189,27 +186,51 @@ const getAllCommentAndJoin = (req, res) => {
     }
 }
 
-const getComments = (req, res) => {
+const getComments = async (req, res) => {
     try {
-        var sort = JSON.parse(req.query.sort);
+        var sort = _.get(req, 'query.sort')
+        if (sort) {
+            sort = JSON.parse(req.query.sort);
+        }
+        let range = _.get(req, 'query.range');
+        if (range) {
+            range = JSON.parse(range);
+        }
+        const limit = range[1] - range[0] + 1;
+        let count = await pgClient.query('SELECT * FROM comment');
         if (req.query.filter !== 'undefined') {
-            var obj = JSON.parse(req.query.filter);
+            let obj = _.get(req, 'query.filter');
+            obj = JSON.parse(obj);
             if (obj.post_id > 0) {
-                pgClient.query(`SELECT * FROM comment WHERE post_id = ($1)  ORDER BY ${sort[0]} ${sort[1]}`, [obj.post_id], (error, result) => {
-                    res.set('Content-Range', `comments 0-2/10`)
+                pgClient.query(`SELECT * FROM comment WHERE post_id = ($1) ORDER BY ${sort[0]} ${sort[1]} LIMIT ${limit} OFFSET ${range[0]}`, [obj.post_id], (error, result) => {
+                    res.set('Content-Range', `comments ${range[0]}-${range[1]}/${count.rowCount}`)
                     res.set('Access-Control-Expose-Headers', 'Content-Range')
                     res.send(result.rows);
                 });
             } else {
-                pgClient.query(`SELECT * FROM comment ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
-                    res.set('Content-Range', `comments 0-2/10`)
-                    res.set('Access-Control-Expose-Headers', 'Content-Range')
-                    res.send(result.rows);
-                });
+                if (obj.user_id > 0) {
+                    pgClient.query(`SELECT * FROM comment WHERE user_id = ($1) ORDER BY ${sort[0]} ${sort[1]} LIMIT ${limit} OFFSET ${range[0]}`, [obj.user_id], (error, result) => {
+                        res.set('Content-Range', `comments ${range[0]}-${range[1]}/${count.rowCount}`)
+                        res.set('Access-Control-Expose-Headers', 'Content-Range');
+                        if (result) {
+                            res.send(result.rows);
+                        } else {
+                            res.send({ id: '1' });
+                        }
+
+                    });
+                }
+                else {
+                    pgClient.query(`SELECT * FROM comment ORDER BY ${sort[0]} ${sort[1]} LIMIT ${limit} OFFSET ${range[0]}`, (error, result) => {
+                        res.set('Content-Range', `comments ${range[0]}-${range[1]}/${count.rowCount}`)
+                        res.set('Access-Control-Expose-Headers', 'Content-Range')
+                        res.send(result.rows);
+                    });
+                }
             }
         } else {
-            pgClient.query(`SELECT * FROM comment ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
-                res.set('Content-Range', `comments 0-2/10`)
+            pgClient.query(`SELECT * FROM comment ORDER BY ${sort[0]} ${sort[1]} LIMIT ${limit} OFFSET ${range[0]}`, (error, result) => {
+                res.set('Content-Range', `comments ${range[0]}-${range[1]}/${count.rowCount}`)
                 res.set('Access-Control-Expose-Headers', 'Content-Range')
                 res.send(result.rows);
             });
@@ -219,27 +240,79 @@ const getComments = (req, res) => {
     }
 }
 
-const getUsers = (req, res) => {
+const getUsers = async (req, res) => {
+    try {
+        let arr = [1, 2, 3];
+        let filter = _.get(req, 'query.filter');
+        let sort = _.get(req, 'query.sort');
+        sort = sort ? JSON.parse(sort) : ['id', 'asc'];
+        arr = filter ? JSON.parse(filter) : arr;
+        let range = _.get(req, 'query.range');
+        range = range ? JSON.parse(range) : ['0', '5'];
+        const limit = range[1] - range[0] + 1;
+        let count = await pgClient.query('SELECT * FROM users');
+        if (req.query.filter !== 'undefined') {
+            let obj = JSON.parse(req.query.filter);
+            if (obj.q !== 'undefined' && obj.q != null) {
+                pgClient.query(`SELECT * FROM users WHERE id IN (${filter.join()}) and username LIKE '%${obj.q}%' ORDER BY ${sort[0]} ${sort[1]} LIMIT ${limit} OFFSET ${range[0]}`, (error, result) => {
+                    res.set('Content-Range', `${range[0]}-${range[1] + 1}/${count.rowCount}`)
+                    res.set('Access-Control-Expose-Headers', 'Content-Range')
+                    res.send(result.rows);
+                });
+            } else {
+                pgClient.query(`SELECT * FROM users ORDER BY ${sort[0]} ${sort[1]} LIMIT ${limit} OFFSET ${range[0]}`, (error, result) => {
+                    res.set('Content-Range', `${range[0]}-${range[1] + 1}/${count.rowCount}`)
+                    res.set('Access-Control-Expose-Headers', 'Content-Range')
+                    res.send(result.rows);
+                });
+            }
+        } else {
+            pgClient.query(`SELECT * FROM users ORDER BY ${sort[0]} ${sort[1]} LIMIT ${limit} OFFSET ${range[0]}`, (error, result) => {
+                res.set('Content-Range', `${range[0]}-${range[1] + 1}/${count.rowCount}`)
+                res.set('Access-Control-Expose-Headers', 'Content-Range')
+                res.send(result.rows);
+            });
+        }
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const getPosts = async (req, res) => {
     try {
         var sort = JSON.parse(req.query.sort);
+        let range = _.get(req, 'query.range');
+        range = range ? JSON.parse(range) : ['10', '0'];
+        const limit = range[1] - range[0] + 1;
+        let count = await pgClient.query('SELECT * FROM post');
         if (req.query.filter !== 'undefined') {
             var obj = JSON.parse(req.query.filter);
             if (obj.q !== 'undefined' && obj.q != null) {
-                pgClient.query(`SELECT * FROM users WHERE username LIKE '%${obj.q}%' ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
-                    res.set('Content-Range', `users 0-2/10`)
-                    res.set('Access-Control-Expose-Headers', 'Content-Range')
-                    res.send(result.rows);
-                });
-            } else {
-                pgClient.query(`SELECT * FROM users ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
-                    res.set('Content-Range', `users 0-2/10`)
+                pgClient.query(`SELECT * FROM post WHERE title LIKE '%${obj.q}%' OR content LIKE '%${obj.q}%' ORDER BY ${sort[0]} ${sort[1]} LIMIT ${limit} OFFSET ${range[0]}`, (error, result) => {
+                    res.set('Content-Range', `${range[0]}-${range[1] + 1}/${count.rowCount}`)
                     res.set('Access-Control-Expose-Headers', 'Content-Range')
                     res.send(result.rows);
                 });
             }
+            else {
+                if (obj.user_id !== 'undefined' && obj.user_id > 0) {
+                    pgClient.query(`SELECT * FROM post WHERE user_id = ($1) ORDER BY ${sort[0]} ${sort[1]}  LIMIT ${limit} OFFSET ${range[0]}`, [obj.user_id], (error, result) => {
+                        res.set('Content-Range', `${range[0]}-${range[1] + 1}/${count.rowCount}`)
+                        res.set('Access-Control-Expose-Headers', 'Content-Range')
+                        res.send(result.rows);
+                    });
+                }
+                else {
+                    pgClient.query(`SELECT * FROM post ORDER BY ${sort[0]} ${sort[1]}  LIMIT ${limit} OFFSET ${range[0]}`, (error, result) => {
+                        res.set('Content-Range', `${range[0]}-${range[1] + 1}/${count.rowCount}`)
+                        res.set('Access-Control-Expose-Headers', 'Content-Range')
+                        res.send(result.rows);
+                    });
+                }
+            }
         } else {
-            pgClient.query(`SELECT * FROM users ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
-                res.set('Content-Range', `users 0-2/10`)
+            pgClient.query(`SELECT * FROM post ORDER BY ${sort[0]} ${sort[1]} LIMIT ${limit} OFFSET ${range[0]}`, (error, result) => {
+                res.set('Content-Range', `${range[0]}-${range[1] + 1}/${count.rowCount}`)
                 res.set('Access-Control-Expose-Headers', 'Content-Range')
                 res.send(result.rows);
             });
@@ -249,57 +322,32 @@ const getUsers = (req, res) => {
     }
 }
 
-const getPosts = (req, res) => {
+const getImages = async (req, res) => {
     try {
-        var sort = JSON.parse(req.query.sort);
-        if (req.query.filter !== 'undefined') {
-            var obj = JSON.parse(req.query.filter);
-            if (obj.q !== 'undefined' && obj.q != null) {
-                pgClient.query(`SELECT * FROM post WHERE title LIKE '%${obj.q}%' OR content LIKE '%${obj.q}%' ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
-                    res.set('Content-Range', `users 0-2/10`)
-                    res.set('Access-Control-Expose-Headers', 'Content-Range')
-                    res.send(result.rows);
-                });
-            } else {
-                pgClient.query(`SELECT * FROM post ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
-                    res.set('Content-Range', `posts 0-2/10`)
-                    res.set('Access-Control-Expose-Headers', 'Content-Range')
-                    res.send(result.rows);
-                });
-            }
-        } else {
-            pgClient.query(`SELECT * FROM post ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
-                res.set('Content-Range', `posts 0-2/10`)
-                res.set('Access-Control-Expose-Headers', 'Content-Range')
-                res.send(result.rows);
-            });
-        }
-
-    } catch (error) {
-        console.log(error);
-    }
-}
-
-const getImages = (req, res) => {
-    try {
-        var sort = JSON.parse(req.query.sort);
-        pgClient.query(`SELECT * FROM image ORDER BY ${sort[0]} ${sort[1]}`, (error, result) => {
-            res.set('Content-Range', `images 0-2/10`)
+        let sort = _.get(req, 'query.sort');
+        sort = sort ? JSON.parse(sort) : ['id', 'asc'];
+        let range = _.get(req, 'query.range');
+        range = range ? JSON.parse(range) : ['10', '0'];
+        const limit = range[1] - range[0] + 1;
+        let count = await pgClient.query('SELECT * FROM image');
+        pgClient.query(`SELECT * FROM image ORDER BY ${sort[0]} ${sort[1]} LIMIT ${limit} OFFSET ${range[0]}`, (error, result) => {
+            res.set('Content-Range', `${range[0]}-${range[1] + 1}/${count.rowCount}`)
             res.set('Access-Control-Expose-Headers', 'Content-Range')
-            res.send(result.rows);
+            if (result != null) {
+                res.send(result.rows);
+            } else {
+                res.send({ error: 'error' })
+            }
         });
     } catch (error) {
         console.log(error);
     }
 }
 
-
 const deletePostById = (req, res) => {
     let id = req.params.id;
     try {
         pgClient.query(`DELETE FROM post WHERE id = ($1)`, [id], (error, result) => {
-            // res.set('Content-Range', `images 0-2/10`)
-            // res.set('Access-Control-Expose-Headers', 'Content-Range')
             res.send({ message: "Deleted" })
         });
     } catch (error) {
@@ -311,8 +359,6 @@ const deleteCommentById = (req, res) => {
     let id = req.params.id;
     try {
         pgClient.query(`DELETE FROM comment WHERE id = ($1)`, [id], (error, result) => {
-            // res.set('Content-Range', `images 0-2/10`)
-            // res.set('Access-Control-Expose-Headers', 'Content-Range')
             res.send({ message: "Deleted" })
         });
     } catch (error) {
@@ -324,8 +370,6 @@ const deleteImageById = (req, res) => {
     let id = req.params.id;
     try {
         pgClient.query(`DELETE FROM image WHERE id = ($1)`, [id], (error, result) => {
-            // res.set('Content-Range', `images 0-2/10`)
-            // res.set('Access-Control-Expose-Headers', 'Content-Range')
             res.send({ message: "Deleted" })
         });
     } catch (error) {
