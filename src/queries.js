@@ -62,13 +62,13 @@ const deletePost = async (request, response) => {
 }
 
 const createPost = async (request, response) => {
-    var image = request.body.image;
+    var image = request.body.image || 0;
     var title = request.body.title;
     var user_id = request.body.user_id;
     var content = request.body.content;
     var dt = new Date();
     var utcDate = dt.toUTCString();
-    if (title != null && content != null) {
+    if (title && content) {
         if (image.length > 0) {
             const query_Image = 'INSERT INTO image(image) VALUES($1)';
             const values_image = [image]
@@ -92,6 +92,8 @@ const createPost = async (request, response) => {
                 console.log(err.stack)
             }
         }
+    } else {
+        response.send({ error: "error" })
     }
 }
 
@@ -125,7 +127,7 @@ const CreateUser = async (request, response) => {
         const values = [username, password];
         try {
             const res = await pgClient.query(text, values);
-            response.send({ message: "Comment success!!" });
+            response.send({ message: "Comment success!!", id: 1 });
         } catch (err) {
             console.log(err.stack)
             response.send({ message: "Error" });
@@ -283,7 +285,7 @@ const getUsers = async (req, res) => {
 
 const getPosts = async (req, res) => {
     try {
-        let filter = _.get(req, query.filter);
+        let filter = _.get(req, 'query.filter');
         let sort = JSON.parse(req.query.sort);
         let range = _.get(req, 'query.range');
         range = range ? JSON.parse(range) : ['10', '0'];
@@ -341,7 +343,6 @@ const getImages = async (req, res) => {
             let obj = JSON.parse(filter);
             if (obj.id) {
                 let id = obj.id.join() + "" || '1';
-                console.log(obj.id);
                 pgClient.query(`SELECT * FROM image WHERE id IN (${id}) ORDER BY ${sort[0]} ${sort[1]} LIMIT ${limit} OFFSET ${range[0]}`, (error, result) => {
                     res.set('Content-Range', `${range[0]}-${range[1] + 1}/${count.rowCount}`)
                     res.set('Access-Control-Expose-Headers', 'Content-Range')
@@ -364,7 +365,7 @@ const getImages = async (req, res) => {
             } else {
                 pgClient.query(`SELECT * FROM image ORDER BY ${sort[0]} ${sort[1]} LIMIT ${limit} OFFSET ${range[0]}`, (error, result) => {
                     //res.set('Content-Range,', `${range[0]}-${range[1] + 1}/${count.rowCount}`)
-                    res.set('Content-Range', '3-0/10');
+                    res.set('Content-Range', `${range[0]}-${range[1] + 1}/${count.rowCount}`)
                     res.set('Access-Control-Expose-Headers', 'Content-Range')
                     if (result != null) {
                         res.send(result.rows);
@@ -447,9 +448,11 @@ const getCommentById = (req, res) => {
 }
 
 const getPostById = (req, res) => {
-    let id = req.params.id;
+    let id = _.get(req, 'params.id');
+    id = id !== 'undefined' ? id : 1;
+    console.log(id);
     try {
-        pgClient.query('SELECT * FROM post WHERE id = ($1)', [id], (error, result) => {
+        pgClient.query(`SELECT * FROM post WHERE id = ${id}`, (error, result) => {
             res.send(result.rows[0])
         })
     } catch (error) {
@@ -519,6 +522,15 @@ const updatePost = (req, res) => {
         res.send({ 'error': error });
     }
 }
+const testJson = (req, res) => {
+    try {
+        pgClient.query(`SELECT * FROM post`, (error, result) => {
+            var myJSON = JSON.stringify(result.rows);
+            res.json(myJSON);
+        });
+    } catch (error) {
+    }
+}
 
 module.exports = {
     getUser,
@@ -547,4 +559,5 @@ module.exports = {
     getUserById,
     updateUser,
     updatePost,
+    testJson,
 }

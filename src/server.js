@@ -57,6 +57,8 @@ app.get('/images/:id', db.getImageById);
 app.delete('/images/:id', db.deleteImageById);
 
 app.post('/posts', db.createPost);
+
+app.get('/testjson', db.testJson);
 app.listen(port, function (req, res) {
     console.log("connect is " + port);
 })
